@@ -39,7 +39,7 @@ public without sharing class CustomerTriggerHandler {
                         Program__Share programShare = new Program__Share();
                         programShare.ParentId = customer.Program__c;
                         programShare.UserOrGroupId = customer.User__c;
-                        programShare.AccessLevel = 'Read';
+                        programShare.AccessLevel = CustomerConstants.ACCESSLEVEL_READ;
                         programShare.RowCause = Schema.Program__Share.RowCause.Share_To_Customer_User__c;
                         programShares.add(programShare);
                     }
