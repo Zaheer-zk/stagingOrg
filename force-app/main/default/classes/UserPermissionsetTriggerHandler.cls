@@ -127,8 +127,9 @@ public with sharing class UserPermissionsetTriggerHandler {
             if(!listOfUserIds.isEmpty()){
                 System.debug('Inside');
                 for(User_Permission_Setup__c ups : newListOfUserPermissionset) {
-                    if(mapOfNameToPermissionSetIdToInsert != null) {
-
+                    System.debug('Inside inside');
+                    if(!mapOfNameToPermissionSetIdToInsert.isEmpty()) {
+						System.debug('3rd');
                         if(mapOfNameToPermissionSetIdToInsert.containsKey(ups.Name) && mapOfUserDetails.containsKey(ups.User_Detail__c)) {
                             PermissionSetAssignment psa = new PermissionSetAssignment();
                             psa.PermissionSetId = mapOfNameToPermissionSetIdToInsert.get(ups.Name);
@@ -136,8 +137,8 @@ public with sharing class UserPermissionsetTriggerHandler {
                             System.debug('psa: ' + psa);
                             listOfPermissionSetAssignmentsToInsert.add(psa);
                         }
-                    } else if(mapOfNameToPermissionSetId != null) {
-
+                    } else if(!mapOfNameToPermissionSetId.isEmpty()) {
+						System.debug('4th');
                         if(mapOfNameToPermissionSetId.containsKey(ups.Name) && mapOfUserDetails.containsKey(ups.User_Detail__c)) {
                             PermissionSetAssignment psa = new PermissionSetAssignment();
                             psa.PermissionSetId = mapOfNameToPermissionSetId.get(ups.Name);
