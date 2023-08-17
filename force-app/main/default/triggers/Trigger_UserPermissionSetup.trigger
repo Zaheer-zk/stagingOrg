@@ -7,15 +7,10 @@
  */
 trigger Trigger_UserPermissionSetup on User_Permission_Setup__c (after insert, after update, after delete) {
     if(Trigger.isAfter){
-        if(Trigger.isInsert || Trigger.isUpdate){
+        if(Trigger.isInsert || Trigger.isUpdate || Trigger.isDelete){
             UserPermissionsetTriggerHandler.addPermissionsetToTheUser(Trigger.new, Trigger.oldMap);
             System.debug('============Updated a record: New record=========' + Trigger.new);
             System.debug('============Updated a record: Old record=========' + Trigger.oldMap);
-        }
-        if(Trigger.isDelete){
-            UserPermissionsetTriggerHandler.addUpdatedPermissionsetToTheUser(Trigger.new, Trigger.oldMap);
-            System.debug('============Updated a record: Old record=========' + Trigger.oldMap);
-            System.debug('============Updated a record: New record=========' + Trigger.new);
         }
     }
 }
