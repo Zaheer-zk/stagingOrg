@@ -1,149 +1,59 @@
+/**
+ * Purpose          : To handle permission set assignment to the User on User_Details object as per the 
+ * Created By       : ZAHEER KHAN
+ * Created Date     : 10-08-2023
+ * Revision Logs    : V_2.0 
+ * Created By       : ZAHEER KHAN 
+ */
 public with sharing class UserPermissionsetTriggerHandler {
 
     public static void addPermissionsetToTheUser(List<User_Permission_Setup__c> newListOfUserPermissionset, Map<Id, User_Permission_Setup__c> oldMapOfUserPermissionset) {
 
-        Set<String> setOfPermissionNames = new Set<String>();
         Set<String> setOfNewPermissionNames = new Set<String>();
         List<PermissionSetAssignment> listOfPermissionSetAssignmentsToInsert = new List<PermissionSetAssignment>();
-        List<PermissionSetAssignment> listOfPermissionSetAssignmentsToDeleteOrInsert = new List<PermissionSetAssignment>();
         List<PermissionSetAssignment> listOfPermissionSetAssignmentsToDelete = new List<PermissionSetAssignment>();
         Map<String, Id> mapOfNameToPermissionSetId = new Map<String, Id>();
-        Map<String, Id> mapOfNameToPermissionSetIdToInsert = new Map<String, Id>();
         List<Id> listOfUserDetailIds = new List<Id>();
-        List<Id> listOfUserIds = new List<Id>();
-        List<Id> listOfPermissionsetIdsRemoveFromUser = new List<Id>();
         List<PermissionSet> existingPermissionSets = new List<PermissionSet>();
-
         Set<String> setOfOldPermissionNames = new Set<String>();
         Set<Id> setOfOldUserDetailIds = new Set<Id>();
         Set<Id> setOfUserIds = new Set<Id>();
         List<User_detail__c> listOfUserDetails = new List<User_detail__c>();
-        List<PermissionSetAssignment> existingAssignments = new List<PermissionSetAssignment>();
         
-        if(newListOfUserPermissionset != null && oldMapOfUserPermissionset == null) {
+        if(newListOfUserPermissionset != null) {
             for(User_Permission_Setup__c ups : newListOfUserPermissionset) {
                 if(ups.User_Detail__c != null && ups.Name != null){
                     setOfNewPermissionNames.add(ups.Name);
                     listOfUserDetailIds.add(ups.User_Detail__c);
                 }
             }
-        }
 
-        if(newListOfUserPermissionset != null && oldMapOfUserPermissionset != null) {
-            for(User_Permission_Setup__c newUserPermission : newListOfUserPermissionset) {
-                if (oldMapOfUserPermissionset.get(newUserPermission.Id).Name != newUserPermission.Name) {
-                    setOfPermissionNames.add(oldMapOfUserPermissionset.get(newUserPermission.Id).Name);
-                    setOfNewPermissionNames.add(newUserPermission.Name);
-                    listOfUserDetailIds.add(oldMapOfUserPermissionset.get(newUserPermission.Id).User_Detail__c);
-                }
-            }
-        }
+            if(!listOfUserDetailIds.isEmpty() && !setOfNewPermissionNames.isEmpty()) {
+                
+                Map<Id, User_detail__c> mapOfUserDetails = new Map<Id, User_Detail__c>(
+                    [SELECT Id, User__c 
+                        FROM User_detail__c 
+                        WHERE Id IN :listOfUserDetailIds]
+                );
 
-        System.debug('setOfPermissionNames: ' + setOfPermissionNames);
-        System.debug('setOfNewPermissionNames: ' + setOfNewPermissionNames);
-        System.debug('listOfUserDetailIds: ' + listOfUserDetailIds);
+                existingPermissionSets = [SELECT Id, Name 
+                                            FROM PermissionSet 
+                                            WHERE Name IN :setOfNewPermissionNames];
 
-        if(!listOfUserDetailIds.isEmpty() && !setOfPermissionNames.isEmpty() 
-            || !setOfNewPermissionNames.isEmpty()
-            && ((newListOfUserPermissionset != null && oldMapOfUserPermissionset != null) 
-            || (newListOfUserPermissionset != null && oldMapOfUserPermissionset == null))) {
-            
-            Map<Id, User_detail__c> mapOfUserDetails = new Map<Id, User_Detail__c>(
-                [SELECT Id, User__c 
-                    FROM User_detail__c 
-                    WHERE Id IN :listOfUserDetailIds]
-            );
+                System.debug('existingPermissionSets: ' + existingPermissionSets);
 
-            if(!mapOfUserDetails.isEmpty()){
-                for(User_detail__c userDetail : mapOfUserDetails.values()) {
-                    listOfUserIds.add(userDetail.User__c);
-                }
-            }
-
-            System.debug('listOfUserIds: ' + listOfUserIds);
-
-            existingPermissionSets = [SELECT Id, Name 
-                                        FROM PermissionSet 
-                                        WHERE Name IN :setOfPermissionNames OR Name IN :setOfNewPermissionNames];
-
-            System.debug('existingPermissionSets: ' + existingPermissionSets);
-
-            if(!existingPermissionSets.isEmpty()) {
-                for(User_Permission_Setup__c newUserPermissionset : newListOfUserPermissionset) {
-                    for(PermissionSet ps : existingPermissionSets) {
-                        if(ps.Name == newUserPermissionset.Name){
-                            mapOfNameToPermissionSetId.put(ps.Name, ps.Id);
-                        }
+                if(!existingPermissionSets.isEmpty()){
+                    for(PermissionSet ps : existingPermissionSets){
+                        mapOfNameToPermissionSetId.put(ps.Name, ps.Id);
                     }
                 }
-
-                if(oldMapOfUserPermissionset != null) {
-                    for(User_Permission_Setup__c oldUserPermissionset : oldMapOfUserPermissionset.values()) {
-                        for(PermissionSet ps : existingPermissionSets) {
-                            if(ps.Name == oldUserPermissionset.Name)
-                            listOfPermissionsetIdsRemoveFromUser.add(ps.Id);
-                        }
-                    }
-                }
-            }
-
-            System.debug('mapOfNameToPermissionSetId: ' + mapOfNameToPermissionSetId.keySet());
-            System.debug('mapOfNameToPermissionSetId.values(): ' + mapOfNameToPermissionSetId.values());
-            System.debug('listOfPermissionsetIdsRemoveFromUser: ' + listOfPermissionsetIdsRemoveFromUser);
-
-            if(!listOfUserIds.isEmpty() && (!listOfPermissionsetIdsRemoveFromUser.isEmpty() || mapOfNameToPermissionSetId != null)) {
-                System.debug('1st');
-                listOfPermissionSetAssignmentsToDeleteOrInsert = [SELECT Id, PermissionSetId, AssigneeId 
-                                                                  FROM PermissionSetAssignment 
-                                                                  WHERE AssigneeId IN :listOfUserIds 
-                                                                  AND (PermissionSetId IN :listOfPermissionsetIdsRemoveFromUser
-                                                                  OR PermissionSetId IN :mapOfNameToPermissionSetId.values())];
-            }
-
-            System.debug('listOfPermissionSetAssignmentsToDeleteOrInsert: ' + listOfPermissionSetAssignmentsToDeleteOrInsert);
-
-            if(!listOfPermissionSetAssignmentsToDeleteOrInsert.isEmpty()){
-                for(PermissionSetAssignment assignment : listOfPermissionSetAssignmentsToDeleteOrInsert){
-                    //Check new permission set already exists
-                    // if(newListOfUserPermissionset != null && oldMapOfUserPermissionset == null){
-                    System.debug('2nd');
-                    for(User_Permission_Setup__c newUserPermissionset : newListOfUserPermissionset) {
-                        if(mapOfNameToPermissionSetId.containsKey(newUserPermissionset.Name)){
-                            Id newPermissionsetId = mapOfNameToPermissionSetId.get(newUserPermissionset.Name);
-                            if(assignment.PermissionSetId != newPermissionsetId){
-                                mapOfNameToPermissionSetIdToInsert.put(newUserPermissionset.Name, newPermissionsetId);
-                            }
-                        }
-                    }
-
-                    if(listOfPermissionsetIdsRemoveFromUser.contains(assignment.PermissionSetId)){
-                        listOfPermissionSetAssignmentsToDelete.add(assignment);
-                    }
-                }
-            }
-
-            System.debug('mapOfNameToPermissionSetIdToInsert: ' + mapOfNameToPermissionSetIdToInsert.values());
-            
-            if(!listOfUserIds.isEmpty()){
-                System.debug('Inside');
-                for(User_Permission_Setup__c ups : newListOfUserPermissionset) {
-                    System.debug('Inside inside');
-                    if(!mapOfNameToPermissionSetIdToInsert.isEmpty()) {
-						System.debug('3rd');
-                        if(mapOfNameToPermissionSetIdToInsert.containsKey(ups.Name) && mapOfUserDetails.containsKey(ups.User_Detail__c)) {
-                            PermissionSetAssignment psa = new PermissionSetAssignment();
-                            psa.PermissionSetId = mapOfNameToPermissionSetIdToInsert.get(ups.Name);
-                            psa.AssigneeId = mapOfUserDetails.get(ups.User_Detail__c).User__c;
-                            System.debug('psa: ' + psa);
-                            listOfPermissionSetAssignmentsToInsert.add(psa);
-                        }
-                    } else if(!mapOfNameToPermissionSetId.isEmpty()) {
-						System.debug('4th');
+                
+                if(mapOfUserDetails != null && mapOfNameToPermissionSetId != null){
+                    for(User_Permission_Setup__c ups : newListOfUserPermissionset) {
                         if(mapOfNameToPermissionSetId.containsKey(ups.Name) && mapOfUserDetails.containsKey(ups.User_Detail__c)) {
                             PermissionSetAssignment psa = new PermissionSetAssignment();
                             psa.PermissionSetId = mapOfNameToPermissionSetId.get(ups.Name);
                             psa.AssigneeId = mapOfUserDetails.get(ups.User_Detail__c).User__c;
-                            System.debug('psa: ' + psa);
                             listOfPermissionSetAssignmentsToInsert.add(psa);
                         }
                     }
@@ -151,7 +61,7 @@ public with sharing class UserPermissionsetTriggerHandler {
             }
         }
 
-        if(newListOfUserPermissionset == null && oldMapOfUserPermissionset != null) {
+        if(oldMapOfUserPermissionset != null) {
 
             for(User_Permission_Setup__c oldUserPermissionSetup : oldMapOfUserPermissionset.values()) {
                 setOfOldUserDetailIds.add(oldUserPermissionSetup.User_Detail__c);

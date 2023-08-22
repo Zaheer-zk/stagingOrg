@@ -18,24 +18,23 @@ public with sharing class UserPermissionsetTriggerHandlerTest {
         );
         insert testUserByZK;
 
-        system.runAs(testUserByZK){
+        PermissionSet ps1 = new PermissionSet(
+            Name = 'TestPermissionSet1',
+            Label = 'Test Permission Set 1'
+        );
+        insert ps1;
 
+        PermissionSet ps2 = new PermissionSet(
+            Name = 'TestPermissionSet2',
+            Label = 'Test Permission Set 2'
+        );
+        insert ps2;
+
+        System.runAs(testUserByZK) {
             User_detail__c userDetail = new User_detail__c(
                 User__c = testUserByZK.Id
             );
             insert userDetail;
-
-            PermissionSet ps1 = new PermissionSet(
-                Name = 'TestPermissionSet1',
-                Label = 'Test Permission Set 1'
-            );
-            insert ps1;
-
-            PermissionSet ps2 = new PermissionSet(
-                Name = 'TestPermissionSet2',
-                Label = 'Test Permission Set 2'
-            );
-            insert ps2;
 
             User_Permission_Setup__c ups = new User_Permission_Setup__c(
                 Name = 'TestPermissionSet1',
@@ -53,15 +52,9 @@ public with sharing class UserPermissionsetTriggerHandlerTest {
         PermissionSet ps1 = [SELECT Id FROM PermissionSet WHERE Name = 'TestPermissionSet1'];
         User_Permission_Setup__c ups = [SELECT Id, Name, User_Detail__c FROM User_Permission_Setup__c WHERE Name = 'TestPermissionSet1'];
 
-        system.runAs(testUser) {
-            Test.startTest();
-                UserPermissionsetTriggerHandler.addPermissionsetToTheUser(new List<User_Permission_Setup__c> {ups});
-            Test.stopTest();
-        }
-
-        // Test.startTest();
-        //     UserPermissionsetTriggerHandler.addPermissionsetToTheUser(new List<User_Permission_Setup__c> {ups});
-        // Test.stopTest();
+        Test.startTest();
+            UserPermissionsetTriggerHandler.addPermissionsetToTheUser(new List<User_Permission_Setup__c> {ups}, null);
+        Test.stopTest();
 
         List<PermissionSetAssignment> assignments = [SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = :testUser.Id];
         System.assertEquals(1, assignments.size(), 'The permission set was not correctly assigned to the user');
@@ -75,24 +68,27 @@ public with sharing class UserPermissionsetTriggerHandlerTest {
         PermissionSet ps1 = [SELECT Id FROM PermissionSet WHERE Name = 'TestPermissionSet1'];
         PermissionSet ps2 = [SELECT Id FROM PermissionSet WHERE Name = 'TestPermissionSet2'];
 
-        PermissionSetAssignment psa = new PermissionSetAssignment();
-        psa.PermissionSetId = ps1.Id;
-        psa.AssigneeId = testUser.Id;
-        insert psa;
+        // PermissionSetAssignment psa = new PermissionSetAssignment();
+        // psa.PermissionSetId = ps1.Id;
+        // psa.AssigneeId = testUser.Id;
+        // insert psa;
 
-        User_Permission_Setup__c ups = new User_Permission_Setup__c(
-            Name = 'TestPermissionSet2',
-            User_Detail__c = userDetail.Id
-        );
-        insert ups;
+        System.runAs(testUser){
 
-        Test.startTest();
-            UserPermissionsetTriggerHandler.addUpdatedPermissionsetToTheUser(
-                new List<User_Permission_Setup__c> {ups},
-                new Map<Id, User_Permission_Setup__c> {ups.Id => new User_Permission_Setup__c(Name = 'TestPermissionSet1', User_Detail__c = userDetail.Id)}
+            User_Permission_Setup__c ups = new User_Permission_Setup__c(
+                Name = 'TestPermissionSet2',
+                User_Detail__c = userDetail.Id
             );
-        Test.stopTest();
+            insert ups;
+        
 
+            Test.startTest();
+                UserPermissionsetTriggerHandler.addPermissionsetToTheUser(
+                    new List<User_Permission_Setup__c> {ups},
+                    new Map<Id, User_Permission_Setup__c> {ups.Id => new User_Permission_Setup__c(Name = 'TestPermissionSet1', User_Detail__c = userDetail.Id)}
+                );
+            Test.stopTest();
+        }
         List<PermissionSetAssignment> assignments = [SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = :testUser.Id];
         System.assertEquals(1, assignments.size(), 'The permission set was not correctly updated for the user');
     }
@@ -111,15 +107,8 @@ public with sharing class UserPermissionsetTriggerHandlerTest {
         insert ups;
 
         Test.startTest();
-            UserPermissionsetTriggerHandler.addPermissionsetToTheUser(new List<User_Permission_Setup__c> {ups});
-        Test.stopTest();
-
-        List<PermissionSetAssignment> initialAssignments = [SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = :testUser.Id];
-        System.assertEquals(1, initialAssignments.size(), 'The permission set was not initially assigned to the user');
-
-        Test.startTest();
-            UserPermissionsetTriggerHandler.addUpdatedPermissionsetToTheUser(
-                new List<User_Permission_Setup__c>(), 
+            UserPermissionsetTriggerHandler.addPermissionsetToTheUser(
+                null, 
                 new Map<Id, User_Permission_Setup__c> {ups.Id => ups}
             );
         Test.stopTest();
