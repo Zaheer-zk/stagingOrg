@@ -5,7 +5,7 @@
  * Revision Logs    : V_2.0 
  * Created By       : ZAHEER KHAN 
  */
-public with sharing class UserPermissionsetTriggerHandler {
+public without sharing class UserPermissionsetTriggerHandler {
 
     public static void addPermissionsetToTheUser(List<User_Permission_Setup__c> newListOfUserPermissionset, Map<Id, User_Permission_Setup__c> oldMapOfUserPermissionset) {
 
